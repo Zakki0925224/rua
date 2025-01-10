@@ -16,7 +16,7 @@ struct Args {
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let file = File::open(args.path)?;
-    let proto = parse::load(file)?;
+    let proto = parse::ParseProto::load(file)?;
     vm::ExeState::new().execute(&proto)?;
 
     Ok(())
