@@ -9,7 +9,6 @@ mod vm;
 
 #[derive(Parser, Debug)]
 struct Args {
-    #[arg(long, short)]
     path: String,
 }
 

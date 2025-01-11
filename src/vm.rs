@@ -1,5 +1,5 @@
 use crate::{bytecode::ByteCode, parse::ParseProto, value::Value};
-use std::{cmp::Ordering, collections::HashMap};
+use std::{cmp::Ordering, collections::HashMap, io::Read};
 
 fn lib_print(state: &mut ExeState) -> i32 {
     println!("{:?}", state.stack[state.func_index + 1]);
@@ -15,7 +15,7 @@ pub struct ExeState {
 impl ExeState {
     pub fn new() -> Self {
         let mut globals = HashMap::new();
-        globals.insert(String::from("print"), Value::Function(lib_print));
+        globals.insert("print".into(), Value::Function(lib_print));
 
         Self {
             globals,
@@ -24,49 +24,29 @@ impl ExeState {
         }
     }
 
-    pub fn execute(&mut self, proto: &ParseProto) -> anyhow::Result<()> {
+    pub fn execute<R: Read>(&mut self, proto: &ParseProto<R>) -> anyhow::Result<()> {
         for code in proto.byte_codes.iter() {
             match *code {
                 ByteCode::GetGlobal(dst, name) => {
-                    let name = &proto.constants[name as usize];
-                    if let Value::String(key) = name {
-                        let v = self.globals.get(key).unwrap_or(&Value::Nil).clone();
-                        self.set_stack(dst, v)?;
-                    } else {
-                        return Err(anyhow::anyhow!("invalid global key: {:?}", name));
-                    }
+                    let name: &str = (&proto.constants[name as usize]).into();
+                    let v = self.globals.get(name).unwrap_or(&Value::Nil).clone();
+                    self.set_stack(dst.into(), v)?;
                 }
                 ByteCode::SetGlobal(name, src) => {
-                    let name = proto.constants[name as usize].clone();
-                    if let Value::String(key) = name {
-                        let value = self.stack[src as usize].clone();
-                        self.globals.insert(key, value);
-                    } else {
-                        return Err(anyhow::anyhow!("invalid global key: {:?}", name));
-                    }
+                    let name = &proto.constants[name as usize];
+                    let value = self.stack[src as usize].clone();
+                    self.globals.insert(name.into(), value);
                 }
                 ByteCode::SetGlobalConst(name, src) => {
-                    let name = proto.constants[name as usize].clone();
-                    if let Value::String(key) = name {
-                        let value = proto.constants[src as usize].clone();
-                        self.globals.insert(key, value);
-                    } else {
-                        return Err(anyhow::anyhow!("invalid global key: {:?}", name));
-                    }
+                    let name = &proto.constants[name as usize];
+                    let value = proto.constants[src as usize].clone();
+                    self.globals.insert(name.into(), value);
                 }
                 ByteCode::SetGlobalGlobal(name, src) => {
-                    let name = proto.constants[name as usize].clone();
-                    if let Value::String(key) = name {
-                        let src = &proto.constants[src as usize];
-                        if let Value::String(src) = src {
-                            let value = self.globals.get(src).unwrap_or(&Value::Nil).clone();
-                            self.globals.insert(key, value);
-                        } else {
-                            return Err(anyhow::anyhow!("invalid global key: {:?}", src));
-                        }
-                    } else {
-                        return Err(anyhow::anyhow!("invalid global key: {:?}", name));
-                    }
+                    let name = &proto.constants[name as usize];
+                    let src: &str = (&proto.constants[src as usize]).into();
+                    let value = self.globals.get(src).unwrap_or(&Value::Nil).clone();
+                    self.globals.insert(name.into(), value);
                 }
                 ByteCode::LoadConst(dst, c) => {
                     let v = proto.constants[c as usize].clone();

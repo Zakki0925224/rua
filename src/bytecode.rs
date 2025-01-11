@@ -1,4 +1,5 @@
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum ByteCode {
     GetGlobal(u8, u8),
     SetGlobal(u8, u8),
