@@ -106,6 +106,16 @@ impl<R: Read> Lex<R> {
         Ok(&self.ahead)
     }
 
+    pub fn expect(&mut self, t: Token) -> anyhow::Result<()> {
+        let next = self.next()?;
+
+        if next != t {
+            return Err(anyhow::anyhow!("expect {:?}, got {:?}", t, next));
+        }
+
+        Ok(())
+    }
+
     fn do_next(&mut self) -> anyhow::Result<Token> {
         if let Some(byte) = self.next_byte() {
             match byte {
