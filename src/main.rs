@@ -4,6 +4,7 @@ use std::fs::File;
 mod bytecode;
 mod lex;
 mod parse;
+mod utils;
 mod value;
 mod vm;
 
